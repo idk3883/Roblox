@@ -1,0 +1,73 @@
+-- Mobile Compatible Fly GUI
+
+local player = game.Players.LocalPlayer
+local RunService = game:GetService("RunService")
+
+local flying = false
+local speed = 60
+local bodyVelocity
+local bodyGyro
+
+-- Create GUI
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FlyGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0,120,0,50)
+button.Position = UDim2.new(0.8,0,0.7,0)
+button.BackgroundColor3 = Color3.fromRGB(30,30,30)
+button.TextColor3 = Color3.fromRGB(255,255,255)
+button.TextScaled = true
+button.Text = "FLY"
+button.Parent = screenGui
+button.BorderSizePixel = 0
+button.BackgroundTransparency = 0.2
+
+local function startFlying()
+	local character = player.Character or player.CharacterAdded:Wait()
+	local humanoid = character:WaitForChild("Humanoid")
+	local root = character:WaitForChild("HumanoidRootPart")
+
+	bodyVelocity = Instance.new("BodyVelocity")
+	bodyVelocity.MaxForce = Vector3.new(1,1,1) * 1000000
+	bodyVelocity.Parent = root
+
+	bodyGyro = Instance.new("BodyGyro")
+	bodyGyro.MaxTorque = Vector3.new(1,1,1) * 1000000
+	bodyGyro.CFrame = root.CFrame
+	bodyGyro.Parent = root
+
+	RunService:BindToRenderStep("FlyControl", 0, function()
+		local camera = workspace.CurrentCamera
+		local moveDirection = humanoid.MoveDirection
+		
+		if moveDirection.Magnitude > 0 then
+			bodyVelocity.Velocity = (camera.CFrame.LookVector * moveDirection.Z + 
+									camera.CFrame.RightVector * moveDirection.X) * speed
+		else
+			bodyVelocity.Velocity = Vector3.new(0,0,0)
+		end
+		
+		bodyGyro.CFrame = camera.CFrame
+	end)
+end
+
+local function stopFlying()
+	RunService:UnbindFromRenderStep("FlyControl")
+	if bodyVelocity then bodyVelocity:Destroy() end
+	if bodyGyro then bodyGyro:Destroy() end
+end
+
+button.MouseButton1Click:Connect(function()
+	flying = not flying
+	
+	if flying then
+		button.Text = "STOP"
+		startFlying()
+	else
+		button.Text = "FLY"
+		stopFlying()
+	end
+end)
